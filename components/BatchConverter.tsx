@@ -1,31 +1,42 @@
+// This component provides the UI and logic for converting a list of values at once.
+// It manages its own state for inputs and results, separate from the single conversion mode.
 
 import React, { useState, useMemo, useCallback } from 'react';
 import type { Unit, Settings, ConversionResult } from '../types';
 import { UnitSelector } from './UnitSelector';
 import { convert } from '../services/conversion';
 
+// Define the props this component expects from its parent (`App.tsx`).
 interface BatchConverterProps {
     units: Unit[];
     settings: Settings;
 }
 
+// Define a type for the structure of a single row in our batch results.
 interface BatchResultRow {
-    input: string;
-    results: ConversionResult[];
+    input: string; // The original input value from a line.
+    results: ConversionResult[]; // The array of conversion results for that input.
 }
 
 export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings }) => {
+    // --- STATE MANAGEMENT ---
+    // This component manages its own state for the batch conversion process.
     const [fromUnit, setFromUnit] = useState<Unit | null>(units.find(u => u.id === 'kcal') || null);
     const [toUnits, setToUnits] = useState<Unit[]>([units.find(u => u.id === 'kJ')].filter(Boolean) as Unit[]);
-    const [inputText, setInputText] = useState('1\n2.5\n3e3');
-    const [batchResults, setBatchResults] = useState<BatchResultRow[]>([]);
+    const [inputText, setInputText] = useState('1\n2.5\n3e3'); // The text area content, with default examples.
+    const [batchResults, setBatchResults] = useState<BatchResultRow[]>([]); // The results of the last batch conversion.
 
+    // --- EVENT HANDLERS & LOGIC ---
+
+    // `useCallback` memoizes the function to prevent it from being recreated on every render.
     const handleConvert = useCallback(() => {
         if (!fromUnit || toUnits.length === 0 || !inputText) {
             setBatchResults([]);
             return;
         }
+        // Split the input text into lines, and filter out any empty lines.
         const lines = inputText.split('\n').filter(line => line.trim() !== '');
+        // For each line, call the `convert` service function.
         const results = lines.map(line => {
             const conversion = convert(line.trim(), fromUnit, toUnits, settings);
             return {
@@ -33,42 +44,53 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings 
                 results: conversion,
             };
         });
+        // Update the state with the new results, triggering a re-render to display the results table.
         setBatchResults(results);
-    }, [fromUnit, toUnits, inputText, settings]);
+    }, [fromUnit, toUnits, inputText, settings]); // This function depends on these values.
 
+    // Handles the file upload input.
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const file = event.target.files?.[0]; // Get the first file from the input.
         if (file) {
+            // `file.text()` is a modern browser API to read a file's content as a string.
             const text = await file.text();
-            setInputText(text);
+            setInputText(text); // Set the textarea's content to the file's content.
         }
     };
     
+    // Generates and triggers a download for a CSV file of the results.
     const downloadCSV = () => {
         if (batchResults.length === 0 || !fromUnit) return;
+        // Define the headers for the CSV file.
         const headers = ['Input Value', `From (${fromUnit.id})`, ...toUnits.map(u => `To (${u.id})`)];
+        // Create a row for each result.
         const rows = batchResults.map(row => {
             const resultValues = toUnits.map(toUnit => {
                 const res = row.results.find(r => r.unit.id === toUnit.id);
                 return res ? res.formattedValue : 'N/A';
             });
+            // Note: This basic CSV generation doesn't handle values with commas correctly.
+            // A more robust solution would use a dedicated CSV library.
             return [row.input, fromUnit.id, ...resultValues].join(',');
         });
         const csvContent = [headers.join(','), ...rows].join('\n');
+        // Create a "Blob" (a file-like object) from the CSV content.
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // Create a temporary link element to trigger the download.
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
         link.setAttribute('download', 'conversion_results.csv');
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        link.click(); // Programmatically click the link.
+        document.body.removeChild(link); // Clean up the temporary link.
     };
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Panel for selecting units */}
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-bold mb-4">1. Select Units</h2>
                     <div className="space-y-4">
@@ -84,6 +106,7 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings 
                         </div>
                     </div>
                 </div>
+                {/* Panel for providing input values */}
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-bold mb-4">2. Provide Input Values</h2>
                      <textarea
@@ -94,6 +117,7 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings 
                     />
                     <div className="mt-2 text-center text-sm text-gray-500">
                         or
+                        {/* A styled label linked to a hidden file input for a better UX. */}
                         <label htmlFor="file-upload" className="ml-1 font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
                             Upload a CSV/TSV file
                         </label>
@@ -101,6 +125,7 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings 
                     </div>
                 </div>
             </div>
+            {/* The main convert button */}
             <div className="text-center">
                 <button
                     onClick={handleConvert}
@@ -110,6 +135,7 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ units, settings 
                     Convert Batch
                 </button>
             </div>
+            {/* The results table, which is only rendered if there are results. */}
             {batchResults.length > 0 && (
                 <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md">
                     <div className="flex justify-between items-center mb-4">

@@ -1,4 +1,11 @@
+// This file contains simple React components that render SVG icons.
+// This is a common practice in React development to keep icons organized and reusable.
+// Each function is a React Functional Component (React.FC) that accepts SVG props.
+
 import React from 'react';
+
+// The {...props} syntax allows us to pass any standard SVG attributes (like `className`)
+// to the underlying <svg> element when we use the component.
 
 export const ClipboardIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>

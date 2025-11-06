@@ -1,5 +1,10 @@
+// This file contains all the constant data related to the energy units.
+// Keeping this data separate makes the app easier to manage and update.
+
 import type { Unit, Category } from '../types';
 
+// A mapping from the short category ID (e.g., 'si') to a more user-friendly name (e.g., "SI & Metric").
+// `Record<Category, string>` is a TypeScript utility that ensures every key is one of our defined `Category` types.
 export const CATEGORY_NAMES: Record<Category, string> = {
     si: "SI & Metric",
     electrical: "Electrical",
@@ -8,6 +13,8 @@ export const CATEGORY_NAMES: Record<Category, string> = {
     atomic: "Atomic"
 };
 
+// The master list of all available energy units.
+// It's an array of `Unit` objects, conforming to the structure we defined in `types.ts`.
 export const UNITS: Unit[] = [
     // SI & Metric
     { id: 'J', name: 'joule', aliases: ['joules'], category: 'si', factorToJ: '1', regions: 'Global (SI standard)' },
@@ -32,7 +39,11 @@ export const UNITS: Unit[] = [
     { id: 'eV', name: 'electronvolt', aliases: ['electron volt'], category: 'atomic', factorToJ: '1.602176634e-19', regions: 'Global standard in particle physics and related scientific fields.' },
 ];
 
+// --- HELPER FUNCTIONS ---
+// We create a Map data structure for very fast lookups. A Map is generally faster
+// than searching through an array with `.find()` for finding items by a key.
 const unitMap = new Map<string, Unit>(UNITS.map(unit => [unit.id.toLowerCase(), unit]));
+// We also add all the aliases to the map so we can find a unit by its alias too.
 UNITS.forEach(unit => {
     unit.aliases.forEach(alias => {
         if (!unitMap.has(alias.toLowerCase())) {
@@ -41,11 +52,23 @@ UNITS.forEach(unit => {
     });
 });
 
+/**
+ * A utility function to get a full unit object by its ID.
+ * @param id - The ID of the unit to find (e.g., 'kWh').
+ * @returns The matching Unit object or null if not found.
+ */
 export const getUnitById = (id: string | null): Unit | null => {
     if (!id) return null;
+    // Uses the fast array `.find()` method, suitable for this specific ID lookup.
     return UNITS.find(u => u.id === id) || null;
 };
 
+/**
+ * A utility function to find a unit by its ID, name, or alias from a search term.
+ * @param searchTerm - The term to search for.
+ * @returns The matching Unit object or null if not found.
+ */
 export const findUnit = (searchTerm: string): Unit | null => {
+    // Uses our pre-built Map for very efficient lookups.
     return unitMap.get(searchTerm.toLowerCase()) || null;
 };
