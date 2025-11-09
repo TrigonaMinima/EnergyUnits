@@ -1,5 +1,5 @@
 {
-  "name": "Energy Unit Converter 4",
+  "name": "EnergyUnits",
   "description": "A modern, client-side web app to convert between common energy units accurately and quickly. Features include single and batch conversions, unit search, precision controls, dark mode, and a responsive UI.",
   "requestFramePermissions": []
 }
